@@ -12,7 +12,7 @@ def directory_for(mission_number):
 
 def download_data_for_mission(mission_number, debug=True):
     if debug:
-        print('\t[Downloader] Downloading data for SSI-%d' % mission_number)
+        print('\t[HABMC Downloader] Downloading data for SSI-%d' % mission_number)
 
     directory = directory_for(mission_number)
 
