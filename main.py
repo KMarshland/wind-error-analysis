@@ -1,6 +1,5 @@
 import math
 from download_habmc_data import download_data_for_mission
-from download_grib import download_dataset
 from grib_utils import get_uv
 from plot import plot_analysis
 
@@ -62,14 +61,12 @@ def compare_against_habmc(mission):
 
         result.append(abs(data_speed - model_speed))
 
-    plot_analysis(result)
+    return result
 
 def main():
     mission = 77
-    compare_against_habmc(mission)
-
-    download_dataset('https://nomads.ncdc.noaa.gov/data/gfs4/201811/20181113/gfs_4_20181113_0000_000.grb2')
-
+    result = compare_against_habmc(mission)
+    # plot_analysis(result)
 
 if __name__ == "__main__":
     main()

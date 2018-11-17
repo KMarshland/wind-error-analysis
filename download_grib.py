@@ -14,7 +14,7 @@ def download_dataset(dataset_url, debug=True):
     if Path(output_path).is_file():
         if debug:
             print('\t[GRIB Downloader] Already downloaded %s' % dataset_url)
-        return
+        return output_path
 
     if debug:
         print('\t[GRIB Downloader] Downloading %s to %s' % (dataset_url, output_path))
@@ -38,6 +38,8 @@ def download_dataset(dataset_url, debug=True):
 
     if debug:
         print('\t[GRIB Downloader] Download complete: %s' % output_path)
+
+    return output_path
 
 
 def get_remote_bytes(dataset_url, _debug):
