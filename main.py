@@ -1,6 +1,9 @@
+from download_habmc_data import download_data_for_mission
+
 
 def main():
-    print('hi')
+    mission = 77
+    download_data_for_mission(mission)
 
 
 if __name__ == "__main__":
