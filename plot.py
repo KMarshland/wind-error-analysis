@@ -18,10 +18,10 @@ def plot_analysis(info):
             color=list(map(lambda point: point['speed_error']/max_error, info)),
             colorscale='Jet'
         ),
-        text=['Montreal'],
+        text=['Data'],
     )
 
-    # histogram = go.Histogram(x=speed_errors)
+    histogram = go.Histogram(x=speed_errors)
 
     data = [
         mapbox,
@@ -45,6 +45,7 @@ def plot_analysis(info):
     fig = dict(data=data, layout=layout)
 
     py.plot(fig, filename='plots/speed_error.html')
+    py.plot([histogram], filename='plots/speed_error_histogram.html')
 
 # just test the plotting
 if __name__ == "__main__":

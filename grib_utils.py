@@ -1,7 +1,7 @@
 import pygrib
 import bisect
 import numpy as np
-from download_grib import download_dataset
+from dataset_manager import find_datasets, get_sample_dataset
 
 """
 Major credits to https://github.com/stanford-ssi/valbal-trajectory/blob/master/atmo/atmotools.py, where much of this
@@ -30,10 +30,10 @@ def close_open_grib_files():
     opened_cache = {}
 
 
-def get_wind_velocity(time, latitude, longitude, altitude):
-    # print('Bounds for', (latitude, longitude + 180, altitude_to_hpa(altitude)), get_aligned_positions(latitude, longitude, altitude))
-    dataset_1 = download_dataset('https://nomads.ncdc.noaa.gov/data/gfs4/201811/20181101/gfs_4_20181101_0000_000.grb2')
-    dataset_2 = dataset_1
+def get_wind_velocity(timestamp, latitude, longitude, altitude):
+    datasets, dataset_times = find_datasets(timestamp)
+    dataset_1, dataset_2 = datasets
+    time_1, time_2 = dataset_times
 
     lat_lower, lng_lower, level_lower, lat_upper, lng_upper, level_upper = get_aligned_bounds(latitude, longitude, altitude)
     positions = [
@@ -77,8 +77,8 @@ def get_wind_velocity(time, latitude, longitude, altitude):
         )
         velocities.append(vel)
 
-    # TODO: interpolate by time
-    percent_time = 0
+    # and interpolate by time
+    percent_time = calc_percent(timestamp, time_1, time_2)
 
     return percent_time*velocities[0] + (1.0 - percent_time)*velocities[1]
 
@@ -163,7 +163,7 @@ def find_grib_params(shortname='u'):
     if latitudes is not None and longitudes is not None and levels is not None:
         return
 
-    source = download_dataset('https://nomads.ncdc.noaa.gov/data/gfs4/201811/20181113/gfs_4_20181113_0000_000.grb2')
+    source = get_sample_dataset()
     grb = pygrib.open(source)
     lats,lons = grb.select(shortName=shortname,typeOfLevel='isobaricInhPa',level=250)[0].latlons() # arbitrary data, doing this for latlons
     latitudes = lats[:,0]

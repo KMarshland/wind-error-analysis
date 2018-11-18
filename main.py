@@ -78,7 +78,8 @@ def compare_against_habmc(mission):
 
         ellapsed = time.time() - analysis_start_time
         if ellapsed - last_ellapsed > 1:
-            print('\t[Analysis] %.2f per second (%.2fs ellapsed), %.2f' % (i / ellapsed, ellapsed, ellapsed - last_ellapsed))
+            print('\t[Analysis] %.1f%% (%d/%d) complete, %.2f per second avg (%.2fs ellapsed)' %
+                  (100.0*(i / float(len(transmissions))), i, len(transmissions), i / ellapsed, ellapsed))
             last_ellapsed = ellapsed
 
     ellapsed = time.time() - analysis_start_time
