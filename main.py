@@ -1,9 +1,12 @@
 import math
 import numpy as np
+import json
+import os
+import time
 from download_habmc_data import download_data_for_mission
 from grib_utils import get_wind_velocity, close_open_grib_files
-import time
 from plot import plot_analysis
+from numpy_encoder import NumpyEncoder
 
 MAX_COMM_GAP = 10*60*1000  # max time between transmissions
 MAX_SPEED = 100  # max speed, in m/s before it throws out the data
@@ -56,7 +59,7 @@ def compare_against_habmc(mission):
                 continue
 
         model_velocity = get_wind_velocity(curr['transmit_time'], curr['latitude'], curr['longitude'], curr['altitude_barometer'])
-        model_speed = np.linalg.norm(model_velocity)
+        model_speed = float(np.linalg.norm(model_velocity))
 
         distance = distance_between(prev['latitude'], prev['longitude'], curr['latitude'], curr['longitude'])
         data_speed = distance / (delta_ms/1000)
@@ -65,7 +68,13 @@ def compare_against_habmc(mission):
         if data_speed > MAX_SPEED:
             continue
 
-        result.append(abs(data_speed - model_speed))
+        result.append({
+            'latitude': curr['latitude'],
+            'longitude': curr['longitude'],
+            'speed': data_speed,
+            'model_speed': model_speed,
+            'speed_error': abs(data_speed - model_speed)
+        })
 
         ellapsed = time.time() - analysis_start_time
         if ellapsed - last_ellapsed > 1:
@@ -73,7 +82,15 @@ def compare_against_habmc(mission):
             last_ellapsed = ellapsed
 
     ellapsed = time.time() - analysis_start_time
-    print('Average error: %.2fm/s (analysis took %.2f seconds)' % (np.mean(result), ellapsed))
+    print('Average error: %.2fm/s (analysis took %.2f seconds)' %
+          (np.mean(list(map(lambda d: d['speed_error'], result))), ellapsed))
+
+    output_dir = 'data/analyzed'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    with open(output_dir + '/ssi-' + str(mission) + '.json', 'w') as f:
+        f.write(json.dumps(result, cls=NumpyEncoder))
 
     return result
 
