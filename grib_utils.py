@@ -82,6 +82,7 @@ def get_wind_velocity(timestamp, latitude, longitude, altitude):
 
     return percent_time*velocities[0] + (1.0 - percent_time)*velocities[1]
 
+# Empirically determined constant for how much data should be preloaded at a time
 PRELOAD_RANGE = 20
 
 def get_uv_aligned(dataset, latitude, longitude, level):
@@ -132,6 +133,7 @@ def get_uv_aligned(dataset, latitude, longitude, level):
 
     return result
 
+
 def get_aligned_bounds(latitude, longitude, altitude):
     find_grib_params()
 
@@ -144,10 +146,10 @@ def get_aligned_bounds(latitude, longitude, altitude):
     level_i = bisect.bisect_right(levels, altitude_to_hpa(altitude))
 
     lat_lower = latitudes[max(lat_i - 1, 0)]
-    lat_upper = latitudes[min(level_i, len(latitudes) - 1)]
+    lat_upper = latitudes[min(lat_i, len(latitudes) - 1)]
 
     lng_lower = longitudes[max(lng_i - 1, 0)]
-    lng_upper = longitudes[min(level_i, len(longitudes) - 1)]
+    lng_upper = longitudes[min(lng_i, len(longitudes) - 1)]
 
     level_lower = levels[max(level_i - 1, 0)]
     level_upper = levels[min(level_i, len(levels) - 1)]
@@ -175,8 +177,14 @@ def find_grib_params(shortname='u'):
     levels = []
     for message in grb:
         if message.shortName == shortname:
-            if message.typeOfLevel == "isobaricInhPa":
-                levels.append(message.level)
+            if message.typeOfLevel != "isobaricInhPa":
+                continue
+
+            # filter out a few of the levels
+            if message.level < altitude_to_hpa(20000):
+                continue
+
+            levels.append(message.level)
     levels.sort()
 
     grb.close()
@@ -191,3 +199,11 @@ def calc_percent(value, lower, upper):
 
 def altitude_to_hpa(altitude):
     return 1013.25 * ((1.0 - altitude/44330.0)**5.255)
+
+if __name__ == "__main__":
+    model_velocity = get_wind_velocity(1541001505000, 49.1123, -40.8999, 13898.9)
+    model_speed = float(np.linalg.norm(model_velocity))
+
+    print(model_velocity)
+    print(model_speed)
+

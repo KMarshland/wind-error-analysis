@@ -14,11 +14,11 @@ def plot_analysis(info):
         lon=list(map(lambda point: point['longitude'], info)),
         mode='markers',
         marker=dict(
-            size=list(map(lambda point: point['speed_error']/2.0 + 1.0, info)),
-            color=list(map(lambda point: point['speed_error']/max_error, info)),
-            colorscale='Jet'
+            size=list(map(lambda point: point['speed_error']/6.0 + 3.0, info)),
+            color=list(map(lambda point: 1.0 - (1.0 - point['speed_error']/max_error)**2, info)),
+            colorscale='Reds'
         ),
-        text=['Data'],
+        text=list(map(lambda point: 'Error: %.2fm/s (%.2f m/s measured vs %.2f m/s predicted)' % (point['speed_error'], point['speed'], point['model_speed']), info)),
     )
 
     histogram = go.Histogram(x=speed_errors)
