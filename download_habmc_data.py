@@ -95,6 +95,8 @@ def get_data(mission_number, mission_id, debug):
 
     print('\t\t[Data] Download complete (%d transmissions)' % len(data))
 
+    data.sort(key=lambda transmission: transmission['transmit_time'])
+
     with open(data_file, 'w') as f:
         f.write(json.dumps(data))
 

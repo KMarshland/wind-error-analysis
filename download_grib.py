@@ -3,9 +3,12 @@ import subprocess
 from pathlib import Path
 
 DATA_DIR = 'data/grib'
-
+cache = {}
 
 def download_dataset(dataset_url, debug=True):
+    # avoid calls to disk
+    if dataset_url in cache:
+       return cache[dataset_url]
 
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
@@ -14,6 +17,7 @@ def download_dataset(dataset_url, debug=True):
     if Path(output_path).is_file():
         if debug:
             print('\t[GRIB Downloader] Already downloaded %s' % dataset_url)
+        cache[dataset_url] = output_path
         return output_path
 
     if debug:
@@ -38,6 +42,8 @@ def download_dataset(dataset_url, debug=True):
 
     if debug:
         print('\t[GRIB Downloader] Download complete: %s' % output_path)
+
+    cache[dataset_url] = output_path
 
     return output_path
 

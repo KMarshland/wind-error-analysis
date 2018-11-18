@@ -1,6 +1,8 @@
 import math
+import numpy as np
 from download_habmc_data import download_data_for_mission
-from grib_utils import get_uv
+from grib_utils import get_wind_velocity, close_open_grib_files
+import time
 from plot import plot_analysis
 
 MAX_COMM_GAP = 10*60*1000  # max time between transmissions
@@ -29,7 +31,11 @@ def distance_between(lat1, lng1, lat2, lng2):
 def compare_against_habmc(mission):
     transmissions = download_data_for_mission(mission)
 
+    print('\t[Analysis] Beginning analysis')
+
     result = []
+    analysis_start_time = time.time()
+    last_ellapsed = 0
     for i in range(1, len(transmissions)):
         prev = transmissions[i - 1]
         curr = transmissions[i]
@@ -49,8 +55,8 @@ def compare_against_habmc(mission):
             if two_ago['latitude'] == prev['latitude'] and two_ago['longitude'] == prev['longitude']:
                 continue
 
-        model_u, model_v = get_uv(curr['transmit_time'], curr['latitude'], curr['longitude'], curr['altitude_barometer'])
-        model_speed = math.sqrt(model_u**2 + model_v**2)
+        model_velocity = get_wind_velocity(curr['transmit_time'], curr['latitude'], curr['longitude'], curr['altitude_barometer'])
+        model_speed = np.linalg.norm(model_velocity)
 
         distance = distance_between(prev['latitude'], prev['longitude'], curr['latitude'], curr['longitude'])
         data_speed = distance / (delta_ms/1000)
@@ -61,12 +67,22 @@ def compare_against_habmc(mission):
 
         result.append(abs(data_speed - model_speed))
 
+        ellapsed = time.time() - analysis_start_time
+        if ellapsed - last_ellapsed > 1:
+            print('\t[Analysis] %.2f per second (%.2fs ellapsed), %.2f' % (i / ellapsed, ellapsed, ellapsed - last_ellapsed))
+            last_ellapsed = ellapsed
+
+    ellapsed = time.time() - analysis_start_time
+    print('Average error: %.2fm/s (analysis took %.2f seconds)' % (np.mean(result), ellapsed))
+
     return result
 
 def main():
     mission = 77
     result = compare_against_habmc(mission)
-    # plot_analysis(result)
+    plot_analysis(result)
+
+    close_open_grib_files()
 
 if __name__ == "__main__":
     main()
