@@ -29,7 +29,15 @@ def distance_between(lat1, lng1, lat2, lng2):
     partial_angle = math.sin(lat_delta/2) * math.sin(lat_delta/2) + math.sin(lon_delta/2) * math.sin(lon_delta/2) * math.cos(lat_from) * math.cos(lat_to)
     angle = 2 * math.atan2(math.sqrt(partial_angle), math.sqrt(1-partial_angle))
     
-    return angle * earth_radius
+    distance = angle * earth_radius
+
+    y = math.sin(lon_to-lon_from) * math.cos(lat_to)
+    x = math.cos(lat_from)*math.sin(lat_to) - math.sin(lat_from)*math.cos(lat_to)*math.cos(lon_to-lon_from)
+
+    bearing = math.atan2(y, x)
+
+    return np.array([ distance * math.cos(bearing), distance * math.sin(bearing) ]), distance, math.degrees(bearing)
+
 
 def compare_against_habmc(mission):
     transmissions = download_data_for_mission(mission)
@@ -60,9 +68,11 @@ def compare_against_habmc(mission):
 
         model_velocity = get_wind_velocity(curr['transmit_time'], curr['latitude'], curr['longitude'], curr['altitude_barometer'])
         model_speed = float(np.linalg.norm(model_velocity))
+        model_bearing = math.degrees(math.atan2(model_velocity[0], model_velocity[1]))
 
-        distance = distance_between(prev['latitude'], prev['longitude'], curr['latitude'], curr['longitude'])
-        data_speed = distance / (delta_ms/1000)
+        distance, displacement, data_bearing = distance_between(prev['latitude'], prev['longitude'], curr['latitude'], curr['longitude'])
+        data_velocity = distance / (delta_ms/1000)
+        data_speed = float(np.linalg.norm(data_velocity))
 
         # simple filter to throw out trash
         if data_speed > MAX_SPEED:
@@ -71,8 +81,14 @@ def compare_against_habmc(mission):
         result.append({
             'latitude': curr['latitude'],
             'longitude': curr['longitude'],
-            'speed': data_speed,
+            'altitude': curr['altitude_barometer'],
+            'timestamp': curr['transmit_time'],
+            'data_speed': data_speed,
             'model_speed': model_speed,
+            'data_bearing': data_bearing,
+            'model_bearing': model_bearing,
+            'data_velocity': data_velocity,
+            'model_velocity': model_velocity,
             'speed_error': abs(data_speed - model_speed)
         })
 

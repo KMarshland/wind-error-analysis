@@ -11,10 +11,13 @@ import bisect
 index = {}
 index_built = False
 
+HOURS_TO_MS = 60*60*1000
+
 def find_datasets(timestamp):
     build_index()
 
     selected_datasets = [value for value in index.values() if value['offset'] == 0]
+    # selected_datasets = [value for value in index.values() if value['month'] == 10 and value['day'] == 31 and value['hour'] == 6]
     timestamps = [value['timestamp'] for value in selected_datasets]
 
     timestamp_i = bisect.bisect_right(timestamps, timestamp)
@@ -147,7 +150,7 @@ def build_index_for_day(year, month, day, debug):
         partial_index[full_url] = index[full_url] = {
             'url': full_url,
             'year': int(year),
-            'month': int(year),
+            'month': int(month),
             'day': int(day),
             'hour': int(hour),
             'offset': int(offset),
