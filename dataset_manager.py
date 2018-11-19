@@ -16,9 +16,9 @@ HOURS_TO_MS = 60*60*1000
 def find_datasets(timestamp):
     build_index()
 
-    selected_datasets = [value for value in index.values() if value['offset'] == 0]
+    selected_datasets = [value for value in index.values() if value['offset'] == 0 or value['offset'] == 3]
     # selected_datasets = [value for value in index.values() if value['month'] == 10 and value['day'] == 31 and value['hour'] == 6]
-    timestamps = [value['timestamp'] for value in selected_datasets]
+    timestamps = [value['timestamp'] + HOURS_TO_MS*value['offset'] for value in selected_datasets]
 
     timestamp_i = bisect.bisect_right(timestamps, timestamp)
     lower = selected_datasets[max(timestamp_i - 1, 0)]

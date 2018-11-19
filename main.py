@@ -47,23 +47,44 @@ def compare_against_habmc(mission):
     result = []
     analysis_start_time = time.time()
     last_ellapsed = 0
+
+    def generate_empty(transmission):
+        return {
+            'latitude': transmission['latitude'],
+            'longitude': transmission['longitude'],
+            'altitude': transmission['altitude_barometer'],
+            'timestamp': transmission['transmit_time'],
+            'data_speed': None,
+            'speed_upper': None,
+            'speed_lower': None,
+            'model_speed': None,
+            'data_bearing': None,
+            'model_bearing': None,
+            'data_velocity': None,
+            'model_velocity': None,
+            'speed_error': None
+        }
+
     for i in range(1, len(transmissions)):
         prev = transmissions[i - 1]
         curr = transmissions[i]
 
         # over long comm gaps it's no longer useful
-        delta_ms = curr['transmit_time'] - prev['transmit_time']
+        delta_ms = (curr['time'] - prev['time']) * 1000  # convert to ms so that it's interoperable with transmit_time
         if delta_ms > MAX_COMM_GAP:
+            result.append(generate_empty(curr))
             continue
 
         # when gps is off it's not useful
         if curr['latitude'] == prev['latitude'] and curr['longitude'] == prev['longitude']:
+            result.append(generate_empty(curr))
             continue
 
         # also filter it out if the gps just turned back on
         if i >= 2:
             two_ago = transmissions[i - 2]
             if two_ago['latitude'] == prev['latitude'] and two_ago['longitude'] == prev['longitude']:
+                result.append(generate_empty(curr))
                 continue
 
         model_velocity = get_wind_velocity(curr['transmit_time'], curr['latitude'], curr['longitude'], curr['altitude_barometer'])
@@ -71,12 +92,15 @@ def compare_against_habmc(mission):
         model_bearing = math.degrees(math.atan2(model_velocity[0], model_velocity[1]))
 
         distance, displacement, data_bearing = distance_between(prev['latitude'], prev['longitude'], curr['latitude'], curr['longitude'])
-        data_velocity = distance / (delta_ms/1000)
+        data_velocity = distance / (delta_ms/1000.0)
         data_speed = float(np.linalg.norm(data_velocity))
+        speed_upper = displacement / (delta_ms/1000.0 - 60.0)
+        speed_lower = displacement / (delta_ms/1000.0 + 60.0)
 
         # simple filter to throw out trash
-        if data_speed > MAX_SPEED:
-            continue
+        # if data_speed > MAX_SPEED:
+        #     result.append(generate_empty(curr))
+        #     continue
 
         result.append({
             'latitude': curr['latitude'],
@@ -84,6 +108,8 @@ def compare_against_habmc(mission):
             'altitude': curr['altitude_barometer'],
             'timestamp': curr['transmit_time'],
             'data_speed': data_speed,
+            'speed_upper': speed_upper,
+            'speed_lower': speed_lower,
             'model_speed': model_speed,
             'data_bearing': data_bearing,
             'model_bearing': model_bearing,
@@ -100,7 +126,7 @@ def compare_against_habmc(mission):
 
     ellapsed = time.time() - analysis_start_time
     print('Average error: %.2fm/s (analysis took %.2f seconds)' %
-          (np.mean(list(map(lambda d: d['speed_error'], result))), ellapsed))
+          (np.mean([d['speed_error'] for d in result if d['speed_error'] is not None]), ellapsed))
 
     output_dir = 'data/analyzed'
     if not os.path.exists(output_dir):

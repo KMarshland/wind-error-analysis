@@ -81,49 +81,136 @@ def plot_histogram(info):
     py.plot([histogram], filename='plots/speed_error_histogram.html')
 
 
+def filter_data(info, key, filter_size=10):
+    filtered_data = []
+    for i in range(len(info)):
+        if info[i][key] is None:
+            filtered_data.append(None)
+            continue
+
+        cur_sum = 0.0
+        count = 0
+        for j in range(-int(filter_size/2), int(filter_size/2)):
+            if i - j < 0:
+                break
+
+            if i - j >= len(info):
+                continue
+
+            if info[i-j][key] is None:
+                continue
+
+            delta_time = abs(info[i]['timestamp'] - info[i-j]['timestamp'])
+            if delta_time > 60*60*1000:
+                continue
+
+            cur_sum += info[i-j][key]
+            count += 1
+
+        filtered_data.append(cur_sum/float(count))
+
+    return filtered_data
+
+
+def get_timestamps(info):
+    min_timestamp = np.array(list(map(lambda point: point['timestamp'], info))).min()
+    return [(value['timestamp'] - min_timestamp) / 1000.0 / 60.0 / 60.0 for value in info]
+
+
 def plot_speed_comparison(info):
-    py.plot([
+    timestamps = get_timestamps(info)
+
+    fig = go.Figure(data=[
         go.Scatter(
-            y = np.array(list(map(lambda point: point['data_speed'], info))),
-            name = 'data speed'
+            x = timestamps,
+            y = np.array(filter_data(info, 'data_speed')),
+            name = 'data speed (smoothed)'
         ),
         go.Scatter(
+            x = timestamps,
             y = np.array(list(map(lambda point: point['model_speed'], info))),
             name = 'model speed'
+        ),
+        go.Scatter(
+            x = timestamps,
+            y = np.array(filter_data(info, 'speed_upper')),
+            name = 'data speed (upper bound, smoothed)'
+        ),
+        go.Scatter(
+            x = timestamps,
+            y = np.array(filter_data(info, 'speed_lower')),
+            name = 'data speed (lower bound, smoothed)'
         )
-    ], filename='plots/speed_error_chart.html')
+    ], layout=dict(
+        title='Speed comparison',
+        xaxis=dict(
+            title='Hours into flight',
+        ),
+        yaxis=dict(
+            title='Speed (m/s)',
+        ),
+    ))
+
+    py.plot(fig, filename='plots/speed_comparison_chart.html')
 
 def plot_bearing_comparison(info):
-    py.plot([
+    timestamps = get_timestamps(info)
+
+    fig = go.Figure(data=[
         go.Scatter(
-            y = np.array(list(map(lambda point: point['data_bearing'], info))),
-            name = 'data bearing'
+            x = timestamps,
+            y = np.array(filter_data(info, 'data_bearing')),
+            name = 'data bearing (smoothed)'
         ),
         go.Scatter(
+            x = timestamps,
             y = np.array(list(map(lambda point: point['model_bearing'], info))),
             name = 'model bearing'
         )
-    ], filename='plots/speed_error_chart.html')
+    ], layout=dict(
+        title='Bearing comparison',
+        xaxis=dict(
+            title='Hours into flight',
+        ),
+        yaxis=dict(
+            title='Bearing (degrees)',
+        ),
+    ))
+
+    py.plot(fig, filename='plots/bearing_comparison_chart.html')
 
 def plot_velocity_comparison(info):
-    py.plot([
+    timestamps = get_timestamps(info)
+
+    fig = go.Figure(data=[
         go.Scatter(
-            y = np.array(list(map(lambda point: point['data_speed'], info))),
-            name = 'data speed'
+            x = timestamps,
+            y = np.array(filter_data(info, 'data_speed')),
+            name = 'data speed (smoothed)'
         ),
         go.Scatter(
+            x = timestamps,
             y = np.array(list(map(lambda point: point['model_speed'], info))),
             name = 'model speed'
         ),
         go.Scatter(
-            y = np.array(list(map(lambda point: point['data_bearing'], info))),
-            name = 'data bearing'
+            x = timestamps,
+            y = np.array(filter_data(info, 'data_bearing')),
+            name = 'data bearing (smoothed)'
         ),
         go.Scatter(
+            x = timestamps,
             y = np.array(list(map(lambda point: point['model_bearing'], info))),
             name = 'model bearing'
         )
-    ], filename='plots/speed_error_chart.html')
+    ], layout=dict(
+        title='Velocity comparison',
+        xaxis=dict(
+            title='Hours into flight',
+        ),
+    ))
+
+    py.plot(fig, filename='plots/velocity_comparison_chart.html')
 
 def plot_analysis(info, which=None):
     if which is None:
