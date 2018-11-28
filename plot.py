@@ -131,16 +131,16 @@ def plot_speed_comparison(info):
             y = np.array(list(map(lambda point: point['model_speed'], info))),
             name = 'model speed'
         ),
-        go.Scatter(
-            x = timestamps,
-            y = np.array(filter_data(info, 'speed_upper')),
-            name = 'data speed (upper bound, smoothed)'
-        ),
-        go.Scatter(
-            x = timestamps,
-            y = np.array(filter_data(info, 'speed_lower')),
-            name = 'data speed (lower bound, smoothed)'
-        )
+        # go.Scatter(
+        #     x = timestamps,
+        #     y = np.array(filter_data(info, 'speed_upper')),
+        #     name = 'data speed (upper bound, smoothed)'
+        # ),
+        # go.Scatter(
+        #     x = timestamps,
+        #     y = np.array(filter_data(info, 'speed_lower')),
+        #     name = 'data speed (lower bound, smoothed)'
+        # )
     ], layout=dict(
         title='Speed comparison',
         xaxis=dict(
@@ -233,6 +233,6 @@ def plot_analysis(info, which=None):
 
 # just test the plotting
 if __name__ == "__main__":
-    with open('data/analyzed/ssi-77.json') as f:
+    with open('data/analyzed/ssi-63.json') as f:
         contents = json.loads(f.read())
     plot_analysis(contents, sys.argv[1] if len(sys.argv) >= 2 else None)

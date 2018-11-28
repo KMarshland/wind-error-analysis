@@ -4,6 +4,7 @@ import json
 import os
 import time
 from download_habmc_data import download_data_for_mission
+from download_dataframes import download_dataframe_for_mission
 from grib_utils import get_wind_velocity, close_open_grib_files
 from plot import plot_analysis
 from numpy_encoder import NumpyEncoder
@@ -41,7 +42,15 @@ def distance_between(lat1, lng1, lat2, lng2):
 
 def compare_against_habmc(mission):
     transmissions = download_data_for_mission(mission)
+    return compare_transmissions(transmissions, mission)
 
+
+def compare_against_dataframe(mission):
+    transmissions = download_dataframe_for_mission(mission)
+    return compare_transmissions(transmissions, mission)
+
+
+def compare_transmissions(transmissions, mission):
     print('\t[Analysis] Beginning analysis')
 
     result = []
@@ -94,8 +103,8 @@ def compare_against_habmc(mission):
         distance, displacement, data_bearing = distance_between(prev['latitude'], prev['longitude'], curr['latitude'], curr['longitude'])
         data_velocity = distance / (delta_ms/1000.0)
         data_speed = float(np.linalg.norm(data_velocity))
-        speed_upper = displacement / (delta_ms/1000.0 - 60.0)
-        speed_lower = displacement / (delta_ms/1000.0 + 60.0)
+        speed_upper = displacement / (delta_ms/1000.0 - 59.99)
+        speed_lower = displacement / (delta_ms/1000.0 + 59.99)
 
         # simple filter to throw out trash
         # if data_speed > MAX_SPEED:
@@ -138,8 +147,8 @@ def compare_against_habmc(mission):
     return result
 
 def main():
-    mission = 77
-    result = compare_against_habmc(mission)
+    mission = 63
+    result = compare_against_dataframe(mission)
     plot_analysis(result)
 
     close_open_grib_files()
