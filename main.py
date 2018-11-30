@@ -3,6 +3,7 @@ import numpy as np
 import json
 import os
 import time
+import sys
 from download_habmc_data import download_data_for_mission
 from download_dataframes import download_dataframe_for_mission
 from grib_utils import get_wind_velocity, close_open_grib_files
@@ -32,8 +33,8 @@ def distance_between(lat1, lng1, lat2, lng2):
     
     distance = angle * earth_radius
 
-    y = math.sin(lon_to-lon_from) * math.cos(lat_to)
-    x = math.cos(lat_from)*math.sin(lat_to) - math.sin(lat_from)*math.cos(lat_to)*math.cos(lon_to-lon_from)
+    x = math.cos(lat_from)*math.sin(lon_delta)
+    y = math.cos(lat_from)*math.sin(lat_to) - math.sin(lat_from)*math.cos(lat_to)*math.cos(lon_delta)
 
     bearing = math.atan2(y, x)
 
@@ -98,7 +99,9 @@ def compare_transmissions(transmissions, mission):
 
         model_velocity = get_wind_velocity(curr['transmit_time'], curr['latitude'], curr['longitude'], curr['altitude_barometer'])
         model_speed = float(np.linalg.norm(model_velocity))
-        model_bearing = math.degrees(math.atan2(model_velocity[0], model_velocity[1]))
+        # u, v => velocity to the east, velocity to the south
+        # bearing of 0 means due north
+        model_bearing = math.degrees(math.atan2(model_velocity[0], -model_velocity[1])) - 90.0
 
         distance, displacement, data_bearing = distance_between(prev['latitude'], prev['longitude'], curr['latitude'], curr['longitude'])
         data_velocity = distance / (delta_ms/1000.0)
@@ -137,18 +140,26 @@ def compare_transmissions(transmissions, mission):
     print('Average error: %.2fm/s (analysis took %.2f seconds)' %
           (np.mean([d['speed_error'] for d in result if d['speed_error'] is not None]), ellapsed))
 
+    return result
+
+def main():
+    mission = int(sys.argv[1]) if len(sys.argv) >= 2 else 63
+    habmc = True
+
+    if len(sys.argv) >= 3 and sys.argv[2] == 'dataframe':
+        habmc = False
+    if habmc:
+        result = compare_against_habmc(mission)
+    else:
+        result = compare_against_dataframe(mission)
+
     output_dir = 'data/analyzed'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    with open(output_dir + '/ssi-' + str(mission) + '.json', 'w') as f:
+    with open(output_dir + '/ssi-' + str(mission) + '-%s.json' % ('habmc' if habmc else 'dataframe'), 'w') as f:
         f.write(json.dumps(result, cls=NumpyEncoder))
 
-    return result
-
-def main():
-    mission = 63
-    result = compare_against_dataframe(mission)
     plot_analysis(result)
 
     close_open_grib_files()

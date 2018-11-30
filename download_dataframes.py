@@ -69,7 +69,7 @@ def get_dataframe(mission_number, debug):
         if debug:
             print('\t[Dataframe Downloader] Already downloaded %s' % dataset_url)
     else:
-        download_file(dataset_url, output_path, debug, skip_byte_check=False)
+        download_file(dataset_url, output_path, debug)
 
     df = pd.read_hdf(output_path)
 

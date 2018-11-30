@@ -1,6 +1,7 @@
 import pygrib
 import bisect
 import numpy as np
+import math
 from dataset_manager import find_datasets, get_sample_dataset
 
 """
@@ -52,7 +53,7 @@ def get_wind_velocity(timestamp, latitude, longitude, altitude):
 
     # interpolate within each dataset
     percent_lat = calc_percent(latitude, lat_lower, lat_upper)
-    percent_lng = calc_percent(longitude, lng_lower, lng_upper)
+    percent_lng = calc_percent(longitude + 180, lng_lower, lng_upper)
     percent_lev = calc_percent(altitude_to_hpa(altitude), level_lower, level_upper)
 
     velocities = []
@@ -103,7 +104,7 @@ def get_uv_aligned(dataset, latitude, longitude, level):
             values.append(found)
 
     if miss:
-        print('\t[GRIB] Cache miss (hit rate: %f, calls: %d, hits: %d) for (%f, %f, %f)' % ((cache_hits/(call_count + 1)), call_count, cache_hits, latitude, longitude, level))
+        print('\t[GRIB] Cache miss (hit rate: %f, calls: %d, hits: %d) for (%f, %f, %f, %s)' % ((cache_hits/(call_count + 1)), call_count, cache_hits, latitude, longitude, level, dataset.split('/')[-1]))
     else:
         cache_hits += 1
         return np.array(values)
@@ -198,7 +199,12 @@ def calc_percent(value, lower, upper):
     return 1.0 - min(max((value - lower) / (upper - lower), 0.0), 1.0)
 
 def altitude_to_hpa(altitude):
-    return 1013.25 * ((1.0 - altitude/44330.0)**5.255)
+    pa_to_hpa = 1.0/100.0
+    if altitude < 11000:
+        return pa_to_hpa * math.exp(math.log(1.0 - (altitude/44330.7)) / 0.190266) * 101325.0
+    else:
+        return pa_to_hpa * math.exp(altitude / -6341.73) * 22632.1 / 0.176481
+
 
 if __name__ == "__main__":
     model_velocity = get_wind_velocity(1541001505000, 49.1123, -40.8999, 13898.9)

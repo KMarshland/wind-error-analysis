@@ -18,13 +18,20 @@ def find_datasets(timestamp):
 
     selected_datasets = [value for value in index.values() if value['offset'] == 0 or value['offset'] == 3]
     # selected_datasets = [value for value in index.values() if value['month'] == 10 and value['day'] == 31 and value['hour'] == 6]
+    selected_datasets.sort(key=lambda value: value['timestamp'] + HOURS_TO_MS*value['offset'])
     timestamps = [value['timestamp'] + HOURS_TO_MS*value['offset'] for value in selected_datasets]
 
     timestamp_i = bisect.bisect_right(timestamps, timestamp)
     lower = selected_datasets[max(timestamp_i - 1, 0)]
     upper = selected_datasets[min(timestamp_i, len(selected_datasets) - 1)]
 
-    return (download_dataset(lower['url']), download_dataset(upper['url'])), (lower['timestamp'], upper['timestamp'])
+    return (
+               download_dataset(lower['url']),
+               download_dataset(upper['url'])
+           ), (
+               lower['timestamp'] + HOURS_TO_MS*lower['offset'],
+               upper['timestamp'] + HOURS_TO_MS*upper['offset']
+           )
 
 def build_index(debug=True):
     global index

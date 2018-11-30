@@ -90,7 +90,8 @@ def filter_data(info, key, filter_size=10):
 
         cur_sum = 0.0
         count = 0
-        for j in range(-int(filter_size/2), int(filter_size/2)):
+        filter_range = range(-int(filter_size/2), int(filter_size/2)) if filter_size >= 2 else [0]
+        for j in filter_range:
             if i - j < 0:
                 break
 
@@ -233,6 +234,9 @@ def plot_analysis(info, which=None):
 
 # just test the plotting
 if __name__ == "__main__":
-    with open('data/analyzed/ssi-63.json') as f:
+    mission = int(sys.argv[2]) if len(sys.argv) >= 3 else 63
+    ending = str(sys.argv[3]) if len(sys.argv) >= 4 else 'dataframe'
+
+    with open('data/analyzed/ssi-%s-%s.json' % (mission, ending)) as f:
         contents = json.loads(f.read())
     plot_analysis(contents, sys.argv[1] if len(sys.argv) >= 2 else None)
