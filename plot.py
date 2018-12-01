@@ -81,7 +81,7 @@ def plot_histogram(info):
     py.plot([histogram], filename='plots/speed_error_histogram.html')
 
 
-def filter_data(info, key, filter_size=10):
+def filter_data(info, key, filter_size=0):
     filtered_data = []
     for i in range(len(info)):
         if info[i][key] is None:

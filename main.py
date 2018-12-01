@@ -9,6 +9,8 @@ from download_dataframes import download_dataframe_for_mission
 from grib_utils import get_wind_velocity, close_open_grib_files
 from plot import plot_analysis
 from numpy_encoder import NumpyEncoder
+from analyze_result import analyze_result
+from mission_config import ANALYZED_MISSIONS
 
 MAX_COMM_GAP = 10*60*1000  # max time between transmissions
 MAX_SPEED = 100  # max speed, in m/s before it throws out the data
@@ -38,22 +40,22 @@ def distance_between(lat1, lng1, lat2, lng2):
 
     bearing = math.atan2(y, x)
 
-    return np.array([ distance * math.cos(bearing), distance * math.sin(bearing) ]), distance, math.degrees(bearing)
+    return np.array([ distance * math.cos(bearing), distance * math.sin(bearing) ]), distance, math.degrees(bearing) + 90.0
 
 
 def compare_against_habmc(mission):
     transmissions = download_data_for_mission(mission)
-    return compare_transmissions(transmissions, mission)
+    print('\t[Analysis] Beginning analysis of HABMC data for SSI-%s' % mission)
+    return compare_transmissions(transmissions)
 
 
 def compare_against_dataframe(mission):
     transmissions = download_dataframe_for_mission(mission)
-    return compare_transmissions(transmissions, mission)
+    print('\t[Analysis] Beginning analysis of dataframe data for SSI-%s' % mission)
+    return compare_transmissions(transmissions)
 
 
-def compare_transmissions(transmissions, mission):
-    print('\t[Analysis] Beginning analysis')
-
+def compare_transmissions(transmissions):
     result = []
     analysis_start_time = time.time()
     last_ellapsed = 0
@@ -80,7 +82,11 @@ def compare_transmissions(transmissions, mission):
         curr = transmissions[i]
 
         # over long comm gaps it's no longer useful
-        delta_ms = (curr['time'] - prev['time']) * 1000  # convert to ms so that it's interoperable with transmit_time
+        if 'time' in curr and 'time' in prev:
+            delta_ms = (curr['time'] - prev['time']) * 1000  # convert to ms so that it's interoperable with transmit_time
+        else:
+            delta_ms = (curr['transmit_time'] - prev['transmit_time'])
+
         if delta_ms > MAX_COMM_GAP:
             result.append(generate_empty(curr))
             continue
@@ -101,7 +107,7 @@ def compare_transmissions(transmissions, mission):
         model_speed = float(np.linalg.norm(model_velocity))
         # u, v => velocity to the east, velocity to the south
         # bearing of 0 means due north
-        model_bearing = math.degrees(math.atan2(model_velocity[0], -model_velocity[1])) - 90.0
+        model_bearing = math.degrees(math.atan2(model_velocity[0], -model_velocity[1]))
 
         distance, displacement, data_bearing = distance_between(prev['latitude'], prev['longitude'], curr['latitude'], curr['longitude'])
         data_velocity = distance / (delta_ms/1000.0)
@@ -137,32 +143,46 @@ def compare_transmissions(transmissions, mission):
             last_ellapsed = ellapsed
 
     ellapsed = time.time() - analysis_start_time
-    print('Average error: %.2fm/s (analysis took %.2f seconds)' %
-          (np.mean([d['speed_error'] for d in result if d['speed_error'] is not None]), ellapsed))
+    print('\t[Analysis] Analysis complete, took %.2f seconds)' % ellapsed)
 
-    return result
+    return result, ellapsed
 
-def main():
-    mission = int(sys.argv[1]) if len(sys.argv) >= 2 else 63
-    habmc = True
 
-    if len(sys.argv) >= 3 and sys.argv[2] == 'dataframe':
-        habmc = False
+def run_full_analysis(mission, habmc=True, plot=True):
     if habmc:
-        result = compare_against_habmc(mission)
+        result, ellapsed = compare_against_habmc(mission)
     else:
-        result = compare_against_dataframe(mission)
+        result, ellapsed = compare_against_dataframe(mission)
 
     output_dir = 'data/analyzed'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
+    analyze_result(result, mission, ellapsed)
+
     with open(output_dir + '/ssi-' + str(mission) + '-%s.json' % ('habmc' if habmc else 'dataframe'), 'w') as f:
         f.write(json.dumps(result, cls=NumpyEncoder))
 
-    plot_analysis(result)
+    if plot:
+        plot_analysis(result)
 
     close_open_grib_files()
+
+def main():
+    if sys.argv[1] == 'all' and len(sys.argv) >= 2:
+        for mission, has_dataframe in ANALYZED_MISSIONS.items():
+            run_full_analysis(mission, habmc=True, plot=False)
+            if has_dataframe:
+                run_full_analysis(mission, habmc=False, plot=False)
+        return
+
+    mission = int(sys.argv[1]) if len(sys.argv) >= 2 else 63
+    habmc = True
+
+    if len(sys.argv) >= 3 and sys.argv[2] == 'dataframe':
+        habmc = False
+
+    run_full_analysis(mission, habmc)
 
 if __name__ == "__main__":
     main()
