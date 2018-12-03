@@ -59,6 +59,7 @@ def build_index(debug=True):
         print('\t[DatasetManager] Building index')
 
     # TODO: stop hardcoding this
+    build_index_for_month(2017, '04', debug)
     build_index_for_month(2017, 12, debug)
     build_index_for_month(2018, 10, debug)
     build_index_for_month(2018, 11, debug)

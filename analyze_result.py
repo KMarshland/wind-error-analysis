@@ -7,6 +7,7 @@ from numpy_encoder import NumpyEncoder
 
 # latitudes over which it is sea, by mission
 SEA_LONGITUDES = {
+    52: -75.5,
     71: [-70.8, -1.4],
     77: [-77.39, -7.7]
 }

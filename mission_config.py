@@ -1,5 +1,6 @@
 # key is mission number, value is whether or not it has a dataframe
 ANALYZED_MISSIONS = {
+    52: False,
     63: True,
     67: True,
     71: True,
