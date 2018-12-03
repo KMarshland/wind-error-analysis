@@ -43,6 +43,7 @@ def analyze_result(result, mission, ellapsed=None, debug=True):
         'ellapsed': ellapsed,
 
         'speed': {
+            'speed_error_percent': 100.0*abs(average('data_speed') - average('model_speed')) / average('model_speed'),
             'net_speed_error': abs(average('data_speed') - average('model_speed')),
             'average_data_speed': average('data_speed'),
             'average_model_speed': average('model_speed'),
@@ -107,12 +108,28 @@ def analyze_result_from_disk(mission, habmc):
     with open(output_dir + '/ssi-' + str(mission) + '-%s-analysis.json' % ('habmc' if habmc else 'dataframe'), 'w') as f:
         f.write(json.dumps(analysis, cls=NumpyEncoder, indent=4))
 
+    return analysis
+
 
 def analyze_all():
+    analyses = []
     for mission, has_dataframe in ANALYZED_MISSIONS.items():
-        analyze_result_from_disk(mission, habmc=True)
+        analysis = analyze_result_from_disk(mission, habmc=True)
         if has_dataframe:
-            analyze_result_from_disk(mission, habmc=False)
+            analysis = analyze_result_from_disk(mission, habmc=False)
+
+        analyses.append(analysis)
+
+    overall = {
+        'speed': {
+            'speed_error_percent': float(np.mean([d['speed']['speed_error_percent'] for d in analyses]))
+        }
+    }
+
+    print('\t[Analysis] Summary')
+    for line in json.dumps(overall, cls=NumpyEncoder, indent=4).split('\n'):
+        print('\t[Analysis]\t %s' % line)
+    print('\t[Analysis]')
 
 if __name__ == "__main__":
     analyze_all()
